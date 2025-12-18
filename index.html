@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление устройствами</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-bottom: 15px;
+            color: #444;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 5px;
+        }
+        .button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .button:hover {
+            background: #45a049;
+        }
+        .drop-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            margin: 15px 0;
+            transition: border 0.3s;
+        }
+        .drop-area.active {
+            border-color: #4CAF50;
+            background: #f8fff8;
+        }
+        .preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .preview-item {
+            max-width: 200px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            background: #fafafa;
+        }
+        .preview-img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e8f4e8;
+            border-radius: 4px;
+            color: #2d572c;
+            display: none;
+        }
+        .error {
+            background: #ffe8e8;
+            color: #a12d2d;
+        }
+        .location-info {
+            margin-top: 10px;
+            padding: 15px;
+            background: #e8f4f9;
+            border-radius: 4px;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-top: 15px;
+        }
+        #video {
+            width: 100%;
+            border-radius: 8px;
+            background: #000;
+        }
+        .camera-btn {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #f44336;
+        }
+        .camera-btn:hover {
+            background: #d32f2f;
+        }
+        .file-info {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .hidden {
+            display: none;
+        }
+        .success {
+            color: #2d572c;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Управление устройствами - HTML5 API</h1>
+        
+        <section id="fileReader">
+            <h2>1. Загрузка файлов (FileReader API)</h2>
+            <button class="button" onclick="document.getElementById('fileInput').click()">Выбрать файлы</button>
+            <input type="file" id="fileInput" multiple class="hidden">
+            <div id="filePreview" class="preview"></div>
+            <div id="fileInfo" class="info"></div>
+        </section>
+
+        <section id="dragDrop">
+            <h2>2. Перетаскивание файлов (Drag & Drop API)</h2>
+            <div class="drop-area" id="dropArea">
+                Перетащите файлы сюда
+                <div style="font-size: 14px; color: #666; margin-top: 10px;">
+                    Поддерживаются изображения и текстовые файлы
+                </div>
+            </div>
+            <div id="dropPreview" class="preview"></div>
+            <div id="dropInfo" class="info"></div>
+        </section>
+
+        <section id="geolocation">
+            <h2>3. Геолокация (Geolocation API)</h2>
+            <button class="button" onclick="getLocation()">Получить местоположение</button>
+            <div id="locationInfo" class="location-info hidden">
+                <div>Широта: <span id="latitude">-</span></div>
+                <div>Долгота: <span id="longitude">-</span></div>
+                <div>Точность: <span id="accuracy">-</span> метров</div>
+                <div id="mapLink" class="success"></div>
+            </div>
+        </section>
+
+        <section id="camera">
+            <h2>4. Веб-камера (Media Devices API)</h2>
+            <button class="button" onclick="startCamera()">Включить камеру</button>
+            <button class="button" onclick="stopCamera()" style="background: #f44336;">Выключить камеру</button>
+            <div class="video-container">
+                <video id="video" autoplay playsinline></video>
+                <button class="button camera-btn" onclick="takePhoto()">Сделать фото</button>
+            </div>
+            <div id="photoPreview" class="preview"></div>
+            <div id="cameraInfo" class="info"></div>
+        </section>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const filePreview = document.getElementById('filePreview');
+        const fileInfo = document.getElementById('fileInfo');
+        
+        const dropArea = document.getElementById('dropArea');
+        const dropPreview = document.getElementById('dropPreview');
+        const dropInfo = document.getElementById('dropInfo');
+        
+        const video = document.getElementById('video');
+        const photoPreview = document.getElementById('photoPreview');
+        const cameraInfo = document.getElementById('cameraInfo');
+        
+        let stream = null;
+
+        fileInput.addEventListener('change', handleFiles);
+
+        function handleFiles(e) {
+            const files = e.target.files;
+            if (files.length === 0) return;
+            
+            filePreview.innerHTML = '';
+            fileInfo.textContent = `Выбрано файлов: ${files.length}`;
+            fileInfo.className = 'info';
+            fileInfo.style.display = 'block';
+            
+            for (let file of files) {
+                displayFile(file, filePreview);
+            }
+        }
+
+        function displayFile(file, container) {
+            const reader = new FileReader();
+            const item = document.createElement('div');
+            item.className = 'preview-item';
+            
+            const name = document.createElement('div');
+            name.textContent = file.name;
+            item.appendChild(name);
+            
+            const info = document.createElement('div');
+            info.className = 'file-info';
+            info.textContent = `${(file.size / 1024).toFixed(2)} KB`;
+            item.appendChild(info);
+            
+            if (file.type.startsWith('image/')) {
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'preview-img';
+                    item.prepend(img);
+                };
+                reader.readAsDataURL(file);
+            } else if (file.type.startsWith('text/')) {
+                reader.onload = function(e) {
+                    const text = document.createElement('div');
+                    text.textContent = e.target.result.substring(0, 200) + '...';
+                    text.style.marginTop = '10px';
+                    text.style.fontSize = '12px';
+                    item.appendChild(text);
+                };
+                reader.readAsText(file);
+            }
+            
+            container.appendChild(item);
+        }
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight() {
+            dropArea.classList.add('active');
+        }
+
+        function unhighlight() {
+            dropArea.classList.remove('active');
+        }
+
+        dropArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const files = e.dataTransfer.files;
+            if (files.length === 0) return;
+            
+            dropPreview.innerHTML = '';
+            dropInfo.textContent = `Перетащено файлов: ${files.length}`;
+            dropInfo.className = 'info';
+            dropInfo.style.display = 'block';
+            
+            for (let file of files) {
+                displayFile(file, dropPreview);
+            }
+        }
+
+        function getLocation() {
+            if (!navigator.geolocation) {
+                showError('Геолокация не поддерживается');
+                return;
+            }
+            
+            const locationInfo = document.getElementById('locationInfo');
+            locationInfo.classList.remove('hidden');
+            
+            document.getElementById('latitude').textContent = 'загрузка...';
+            document.getElementById('longitude').textContent = 'загрузка...';
+            document.getElementById('accuracy').textContent = 'загрузка...';
+            
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const acc = position.coords.accuracy;
+                    
+                    document.getElementById('latitude').textContent = lat.toFixed(6);
+                    document.getElementById('longitude').textContent = lon.toFixed(6);
+                    document.getElementById('accuracy').textContent = Math.round(acc);
+                    
+                    const mapLink = document.getElementById('mapLink');
+                    mapLink.innerHTML = `<a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=15/${lat}/${lon}" target="_blank">Показать на карте</a>`;
+                },
+                function(error) {
+                    let message = 'Ошибка получения местоположения: ';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            message += 'Доступ запрещен';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            message += 'Местоположение недоступно';
+                            break;
+                        case error.TIMEOUT:
+                            message += 'Время ожидания истекло';
+                            break;
+                        default:
+                            message += 'Неизвестная ошибка';
+                    }
+                    showError(message);
+                }
+            );
+        }
+
+        function showError(msg) {
+            fileInfo.textContent = msg;
+            fileInfo.className = 'info error';
+            fileInfo.style.display = 'block';
+        }
+
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'user' } 
+                });
+                video.srcObject = stream;
+                cameraInfo.textContent = 'Камера включена';
+                cameraInfo.className = 'info';
+                cameraInfo.style.display = 'block';
+            } catch (err) {
+                cameraInfo.textContent = 'Ошибка доступа к камере: ' + err.message;
+                cameraInfo.className = 'info error';
+                cameraInfo.style.display = 'block';
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                cameraInfo.textContent = 'Камера выключена';
+                cameraInfo.style.display = 'block';
+            }
+        }
+
+        function takePhoto() {
+            if (!stream) {
+                cameraInfo.textContent = 'Включите камеру сначала';
+                cameraInfo.className = 'info error';
+                cameraInfo.style.display = 'block';
+                return;
+            }
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            const img = document.createElement('img');
+            img.src = canvas.toDataURL('image/png');
+            img.className = 'preview-img';
+            
+            const item = document.createElement('div');
+            item.className = 'preview-item';
+            item.appendChild(img);
+            
+            const time = document.createElement('div');
+            time.className = 'file-info';
+            time.textContent = new Date().toLocaleTimeString();
+            item.appendChild(time);
+            
+            photoPreview.prepend(item);
+            
+            cameraInfo.textContent = 'Фото сделано!';
+            cameraInfo.className = 'info';
+            cameraInfo.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
